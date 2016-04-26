@@ -1,0 +1,126 @@
+#!/bin/bash
+
+#	CloudAtCost API wrapper written in bash
+
+# [1] https://panel.cloudatcost.com/api/v1/
+# [2] https://github.com/cloudatcost/api
+# [3] https://github.com/tonejito/cac-api-bash
+
+CURL=/usr/bin/curl
+JQ=/usr/bin/jq
+
+CURL_ARGS=-sk#
+
+# Enter your API credentials and be sure to whitelist your IP!
+API_USER=user@example.com
+API_KEY=XXXXXXXXXXXXXXXXXXXXXXXXX
+API_ENDPOINT=https://panel.cloudatcost.com/api/v1
+
+# cac-api functions from [1]
+CLIENT_LIST=$API_ENDPOINT/clientlist.php
+LIST_SERVERS=$API_ENDPOINT/listservers.php
+LIST_TEMPLATES=$API_ENDPOINT/listtemplates.php
+LIST_TASKS=$API_ENDPOINT/listtasks.php
+POWEROP=$API_ENDPOINT/poweropp.php
+POWEROP=$API_ENDPOINT/powerop.php
+RENAME_SERVER=$API_ENDPOINT/renameserver.php
+RDNS=$API_ENDPOINT/rdns.php
+CONSOLE=$API_ENDPOINT/console.php
+RUN_MODE=$API_ENDPOINT/runmode.php
+CLOUDPRO_BUILD=$API_ENDPOINT/cloudpro/build.php
+CLOUDPRO_DELETE=$API_ENDPOINT/cloudpro/delete.php
+CLOUDPRO_RESOURCES=$API_ENDPOINT/cloudpro/resources.php
+
+function help()
+{
+  cat << EOF
+  Usage: ${0} <command> [<args>...]
+
+<command> :
+  servers|list-servers
+  templates|list-templates
+  tasks|list-tasks
+  resources
+
+  rename|rename-server <SID> <NAME>
+  rdns <SID> <HOSTNAME>
+  console <SID>
+  build <OS> <CPU> <RAM> <HDD>
+  delete <SID>
+
+  powerop <SID> <ACTION>
+    ACTION: poweron|poweroff|reset
+
+  mode|run-mode <SID> <MODE>
+    MODE: normal|safe
+EOF
+}
+
+OPERATION=${1}
+case ${OPERATION}
+in
+  clients|clientlist)
+    $CURL $CURL_ARGS "$CLIENT_LIST?login=$API_USER&key=$API_KEY" | $JQ .
+  ;;
+  servers|list-servers)
+    $CURL $CURL_ARGS "$LIST_SERVERS?login=$API_USER&key=$API_KEY" | $JQ .
+  ;;
+  templates|list-templates)
+    $CURL $CURL_ARGS "$LIST_TEMPLATES?login=$API_USER&key=$API_KEY" | $JQ .
+  ;;
+  tasks|list-tasks)
+    $CURL $CURL_ARGS "$LIST_TASKS?login=$API_USER&key=$API_KEY" | $JQ .
+  ;;
+  powerop)
+    SID=${2}
+    ACTION=${3}
+    if [[ "$ACTION" =~ poweron|poweroff|reset ]]
+    then
+      $CURL $CURL_ARGS --data "login=$API_USER&key=$API_KEY&sid=$SID&action=$ACTION" "$POWEROP" | $JQ .
+    else
+      help
+    fi
+  ;;
+  rename|rename-server)
+    SID=${2}
+    NAME=${3}
+    $CURL $CURL_ARGS --data "login=$API_USER&key=$API_KEY&sid=$SID&name=$NAME" "$RENAME_SERVER" | $JQ .
+  ;;
+  rdns)
+    SID=${2}
+    HOSTNAME=${3}
+    $CURL $CURL_ARGS --data "login=$API_USER&key=$API_KEY&sid=$SID&hostname=$HOSTNAME" "$RDNS" | $JQ .
+  ;;
+  console)
+    SID=${2}
+    $CURL $CURL_ARGS --data "login=$API_USER&key=$API_KEY&sid=$SID" "$CONSOLE"
+  ;;
+  mode|run-mode)
+    SID=${2}
+    MODE=${2}
+    if [[ "$MODE" =~ normal|safe ]]
+    then
+      $CURL $CURL_ARGS --data "login=$API_USER&key=$API_KEY&sid=$SID&mode=$MODE" "$RUN_MODE" | $JQ .
+    else
+      help
+    fi
+  ;;
+  build)
+    OS=${2}
+    CPU=${3}
+    RAM=${4}
+    HDD=${5}
+    $CURL $CURL_ARGS --data "login=$API_USER&key=$API_KEY&os=$OS&cpu=$CPU&ram=$RAM&storage=$HDD" "$CLOUDPRO_BUILD" | $JQ .
+  ;;
+  delete)
+    SID=${2}
+    $CURL $CURL_ARGS --data "login=$API_USER&key=$API_KEY&sid=$SID" "$CLOUDPRO_DELETE" | $JQ .
+  ;;
+  resources)
+    $CURL $CURL_ARGS "$CLOUDPRO_RESOURCES?login=$API_USER&key=$API_KEY" | $JQ .
+  ;;
+  *)
+    help
+  ;;
+esac
+
