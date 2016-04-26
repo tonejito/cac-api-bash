@@ -9,7 +9,7 @@
 CURL=/usr/bin/curl
 JQ=/usr/bin/jq
 
-CURL_ARGS=-sk#
+CURL_ARGS=-s#
 
 # Enter your API credentials and be sure to whitelist your IP!
 API_USER=user@example.com
